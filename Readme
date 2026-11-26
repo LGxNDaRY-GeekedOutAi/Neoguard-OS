@@ -1,0 +1,92 @@
+# Neoguard OS (NetGuard) – Deep Dive
+
+![Neoguard OS logo](https://raw.githubusercontent.com/LGxNDaRY-GeekedOutAi/Neoguard-OS-Deep-Dive/main/assets/logo.png)
+
+---
+
+## 🎯 Project Purpose  
+
+**NetGuard** (branded as **Neoguard OS**) is a Windows‑focused network‑security agent that runs from the system tray. Its primary goals are:
+
+| Goal | Description |
+|------|-------------|
+| **Real‑time monitoring** | Tracks every outbound/inbound connection, enriches IPs/processes (PTR/ASN/org/datacenter flags) and logs blocked/suspicious events. |
+| **AI‑augmented verdicts** | Integrates with a local LM Studio server (OpenAI‑compatible) using the custom model `netguard-llm` to generate contextual alerts and RAG‑driven learning from past events. |
+| **Headless diagnostics** | `python -m netguard --diagnostic N` produces an N‑second snapshot + firewall report for automated auditing or CI pipelines. |
+| **Self‑protection** | Tamper‑guard safeguards the runtime files, SQLite database (`netguard.db`), and the `allow_exe` table from unauthorized modification. Optional Windows ACL lockdown (`icacls.exe`) can be enabled for extra hardening. |
+| **Training & red‑team lab** | Continuous attack simulator (RFC 5737 IPs, dry‑run firewall) grades live LLM verdicts and feeds mistakes into an `ExperienceStore` for immediate RAG learning. |
+
+---
+
+## ✨ Feature‑Rich Implementations  
+
+| Category | Highlights |
+|----------|------------|
+| **Core monitoring** | • Connection monitor <br>• Process/IP enrichment <br>• Audit log (`block_events`) |
+| **Persistence** | SQLite `netguard.db` (WAL mode) – rules, IP intel, settings (`allow_dirs`, `autostart`, profile lockdown). All access goes through a lock‑guarded connection with busy timeout. |
+| **AI Sentinel LLM** | Configurable base URL/model/context length via DB settings, env vars, or `.env`. Falls back to code defaults. Used for verdict generation and red‑team grading. |
+| **Tamper guard** | Protects runtime files, SQLite config (`sentinel_mode`), `allow_exe` table. Optional `icacls.exe` lockdown for `netguard.db`, `experience.db`, launcher files. |
+| **Training lab** | Generates realistic network/hardware‑abuse scenarios, grades sentinel verdicts, stores mistakes for immediate learning. |
+| **Throughput & telemetry** | `python -m netguard.smoke_throughput` exercises real host counters; module `netguard.throughput`. |
+| **Forensic exporter** | Unit tests & exporter for incident bundles (`netguard.incident`). |
+| **Multi‑theme engine** | UI theme support with dedicated unit tests (`netguard.theme`). |
+| **Launch & autostart** | Bat/PS scripts (`launch_netguard_sentinel.bat`, `start_netguard.ps1`) handle elevation, reboot persistence, and “Restart‑as‑Admin” flows. |
+| **Package layout** | `netguard/__main__.py` as entry point; sub‑packages: `database`, `firewall_engine`, `sentinel_ai`, `tray`, `connection_monitor`, `hw_telemetry`, `lora_trainer`, `training_scheduler`, `theme`, etc. |
+
+---
+
+## 📦 Repository Structure (high‑level)
+Neoguard-OS-Deep-Dive/ │ ├─ .gitignore ├─ README.md ← this file ├─ pyproject.toml ├─ package.json │ └─ netguard/ # main Python package ├─ init.py ├─ main.py # python -m netguard entry point ├─ database.py # SQLite wrapper, WAL mode ├─ firewall_engine.py # Rule engine & blocking logic ├─ sentinel_ai.py # LLM integration (netguard‑llm) ├─ tray.py # System‑tray UI (PySide6) ├─ connection_monitor.py # Real‑time network monitoring ├─ theme.py # Multi‑theme engine ├─ throughput.py # Throughput sampling & smoke test ├─ incident.py # Forensic exporter ├─ monitors/ # per‑monitor modules │ └─ net.py ├─ training_scheduler.py # LLM‑training schedule ├─ hw_telemetry.py # Hardware telemetry collector └─ ... (additional sub‑packages as needed)
+
+
+
+
+---
+
+## 🛠️ Installation & Quick Start  
+
+```bash
+# 1️⃣ Clone the repo
+git clone https://github.com/LGxNDaRY-GeekedOutAi/Neoguard-OS-Deep-Dive.git
+cd Neoguard-OS-Deep-Dive
+
+# 2️⃣ Create a virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# 3️⃣ Install dependencies
+pip install -r requirements.txt   # (generated from the workspace’s lock file)
+
+# 4️⃣ (Optional) Configure LM Studio / AI sentinel
+#    Copy `.env.example` → `.env` and set:
+#       NETGUARD_LLM_BASE_URL=http://127.0.0.1:1234/v1
+#       NETGUARD_LLM_MODEL=netguard-llm
+#       NETGUARD_LLM_API_KEY=<your‑key>
+
+# 5️⃣ Run the tray monitor
+python -m netgradient          # runs as system‑tray GUI (admin rights needed for blocking)
+📚 Usage Notes
+
+
+
+Command	Effect
+python -m netguard	Starts the system‑tray guardian; requires admin for firewall block actions.
+python -m netguard --diagnostic 30	Takes a 30‑second snapshot, writes netguard_diagnostic_<timestamp>.json with connection stats, blocked events, and AI verdicts.
+python -m netguard.smoke_throughput	Runs the throughput smoke test; exits 0 only when global & per‑process deltas are finite, non‑sentinel values.
+python -m netguard --help	Lists all available CLI flags and configuration options.
+🤝 Contributing
+Fork the repository.
+Create a feature branch (git checkout -b feature/xxx).
+Add/modify code + tests, following the existing style.
+Run the test suite: pytest.
+Commit, push, and open a Pull Request.
+Please see the repository’s CONTRIBUTING.md (to be added) for detailed coding guidelines, linting rules, and the branch‑protection policy.
+
+📄 License
+This project is licensed under the MIT License – see the LICENSE [blocked] file for details.
+
+🙏 Acknowledgments
+Built on top of the open‑source NetGuard security agent.
+AI sentinel model hosted via LM Studio (OpenAI‑compatible endpoint).
+Inspiration from Windows Firewall, tcpdump, and modern RAG pipelines.
+Generated from the deep‑dive analysis of the A:\Chronos Workspace\netguard project on 2025‑08‑24.
